@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Reward.cpp" />
+    <ClCompile Include="EOGTask.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectName>NidaqPlugin</ProjectName>

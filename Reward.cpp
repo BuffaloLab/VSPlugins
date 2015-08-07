@@ -51,7 +51,7 @@
 
 extern "C"
 {
-	int EXPORT_API reward(bool on)
+	int EXPORT_API reward(int on)
 	{
 		int         error = 0;
 		TaskHandle	taskHandle = 0;
@@ -59,7 +59,7 @@ extern "C"
 		char        errBuff[2048] = { '\0' };
 		int32		written;
 		
-		if (!on) {
+		if (on == 0) {
 			data = 0;
 		}
 
@@ -78,8 +78,10 @@ extern "C"
 		// DAQmx Write Code
 		/*********************************************/
 		DAQmxErrChk(DAQmxWriteDigitalU32(taskHandle, 1, 1, 10.0, DAQmx_Val_GroupByChannel, &data, &written, NULL));
+		DAQmxStopTask(taskHandle);
+		DAQmxClearTask(taskHandle);
+		return on;
 
-		return 1;
 	Error:
 		if (DAQmxFailed(error))
 			DAQmxGetExtendedErrorInfo(errBuff, 2048);
@@ -94,7 +96,7 @@ extern "C"
 			printf("DAQmx Error: %s\n", errBuff);
 		printf("End of program, press Enter key to quit\n");
 		getchar();
-		return 0;
+		return -1;
 	}
 
 // The functions we will call from Unity.
