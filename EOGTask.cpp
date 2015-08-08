@@ -51,7 +51,6 @@
 #include <stdio.h>
 #include <NIDAQmx.h>
 
-
 #if _MSC_VER // this is defined when compiling with Visual Studio
 #define EXPORT_API __declspec(dllexport) // Visual Studio needs annotating exported functions with this
 #else
@@ -67,11 +66,11 @@ extern "C"
 {
 	int32 CVICALLBACK EveryNSamplesCallback(TaskHandle taskHandle, int32 everyNsamplesEventType, uInt32 nSamples, void *callbackData);
 	void Cleanup(void);
-
+	void set_eog_callback(void(*UnityCallback));
 	static TaskHandle	taskHandle = 0;
 	static float64		data[1000];
 	static int32		totalRead = 0;
-
+	
 	int EXPORT_API eog_start(void)
 	{
 		int32       error = 0;
@@ -81,22 +80,9 @@ extern "C"
 		// DAQmx Configure Code
 		/*********************************************/
 		DAQmxErrChk(DAQmxCreateTask("", &taskHandle));
-		DAQmxErrChk(DAQmxCreateAIVoltageChan(taskHandle, "Dev1/ai0", "", DAQmx_Val_Cfg_Default, -10.0, 10.0, DAQmx_Val_Volts, NULL));
+		DAQmxErrChk(DAQmxCreateAIVoltageChan(taskHandle, "Dev1/ai3", "", DAQmx_Val_Cfg_Default, -10.0, 10.0, DAQmx_Val_Volts, NULL));
 		DAQmxErrChk(DAQmxCfgSampClkTiming(taskHandle, "", 10000.0, DAQmx_Val_Rising, DAQmx_Val_ContSamps, 1000));
-		DAQmxErrChk(DAQmxRegisterEveryNSamplesEvent(taskHandle, DAQmx_Val_Acquired_Into_Buffer, 1000, 0, EveryNSamplesCallback, NULL));
-
-		/*********************************************/
-		// DAQmx Start Code
-		/*********************************************/
-		DAQmxErrChk(DAQmxStartTask(taskHandle));
-
-		printf("Acquiring samples continuously.  Press Enter key to interrupt\n");
-
-		getchar();
-
-		DAQmxErrChk(DAQmxStopTask(taskHandle));
-
-		printf("\nAcquired %d total samples.\n", (int)totalRead);
+		
 
 	Error:
 		if (DAQmxFailed(error))
@@ -105,8 +91,24 @@ extern "C"
 			Cleanup();
 			printf("DAQmx Error: %s\n", errBuff);
 		}
-		printf("End of program, press Enter key to quit\n");
-		getchar();
+		
+		return 0;
+	}
+
+	int EXPORT_API eog_set_callback(void(*UnityCallback)(int))
+	{
+		//cb = UnityCallback;
+		if (UnityCallback) {
+			// printf_s("[unmanaged] got call back address (%d), calling it...\n", cb);
+			UnityCallback(5);
+			return 1;
+			//DAQmxErrChk(DAQmxRegisterEveryNSamplesEvent(taskHandle, DAQmx_Val_Acquired_Into_Buffer, 1000, 0, EveryNSamplesCallback, NULL));
+
+			/*********************************************/
+			// DAQmx Start Code
+			/*********************************************/
+			//DAQmxErrChk(DAQmxStartTask(taskHandle));
+		}
 		return 0;
 	}
 
@@ -121,7 +123,9 @@ extern "C"
 		/*********************************************/
 		DAQmxErrChk(DAQmxReadAnalogF64(taskHandle, 1000, 10.0, DAQmx_Val_GroupByScanNumber, data, 1000, &read, NULL));
 
+		// now call the callback we have set and send the data
 		if (read > 0) {
+
 			printf("Acquired %d samples. Total %d\r", (int)read, (int)(totalRead += read));
 			fflush(stdout);
 		}
@@ -133,6 +137,25 @@ extern "C"
 			Cleanup();
 			printf("DAQmx Error: %s\n", errBuff);
 		}
+		return 0;
+	}
+
+	int EXPORT_API stop_task(void)
+	{
+		int32       error = 0;
+		char        errBuff[2048] = { '\0' };
+
+		DAQmxErrChk(DAQmxStopTask(taskHandle));
+
+	Error:
+
+		if (DAQmxFailed(error))
+		{
+			DAQmxGetExtendedErrorInfo(errBuff, 2048);
+			Cleanup();
+			printf("DAQmx Error: %s\n", errBuff);
+		}
+
 		return 0;
 	}
 

@@ -51,6 +51,7 @@
 
 extern "C"
 {
+	
 	int EXPORT_API reward(int on)
 	{
 		int         error = 0;
