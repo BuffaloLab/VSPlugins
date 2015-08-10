@@ -24,7 +24,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectName>NidaqPlugin</ProjectName>
-    <ProjectGuid>{05036C7A-18C6-4A79-BC31-3ABD5C3B0593}</ProjectGuid>
+    <ProjectGuid>{210BCAB2-38E8-4F21-859A-2F8C4C5F2C3D}</ProjectGuid>
     <RootNamespace>ASimplePlugin</RootNamespace>
     <Keyword>Win32Proj</Keyword>
   </PropertyGroup>
