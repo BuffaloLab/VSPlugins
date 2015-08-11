@@ -64,14 +64,21 @@
 
 extern "C"
 {
+
+	typedef void(*UnityCallback)(float64);
+
 	int32 CVICALLBACK EveryNSamplesCallback(TaskHandle taskHandle, int32 everyNsamplesEventType, uInt32 nSamples, void *callbackData);
+	int32 CVICALLBACK DoneCallback(TaskHandle taskHandle, int32 status, void *callbackData);
+
+
 	void Cleanup(void);
-	void set_eog_callback(void(*UnityCallback));
+	//void set_eog_callback(void(*UnityCallback));
 	static TaskHandle	taskHandle = 0;
-	static float64		data[1000];
+	static float64		data[10];
 	static int32		totalRead = 0;
+	static int32		numSamples = 1;
 	
-	int EXPORT_API eog_start(void)
+	int EXPORT_API eog_start_task(void)
 	{
 		int32       error = 0;
 		char        errBuff[2048] = { '\0' };
@@ -80,9 +87,9 @@ extern "C"
 		// DAQmx Configure Code
 		/*********************************************/
 		DAQmxErrChk(DAQmxCreateTask("", &taskHandle));
-		DAQmxErrChk(DAQmxCreateAIVoltageChan(taskHandle, "Dev1/ai3", "", DAQmx_Val_Cfg_Default, -10.0, 10.0, DAQmx_Val_Volts, NULL));
-		DAQmxErrChk(DAQmxCfgSampClkTiming(taskHandle, "", 10000.0, DAQmx_Val_Rising, DAQmx_Val_ContSamps, 1000));
-		
+		DAQmxErrChk(DAQmxCreateAIVoltageChan(taskHandle, "Dev1/ai3", "", DAQmx_Val_Cfg_Default, -5.0, 5.0, DAQmx_Val_Volts, NULL));
+		DAQmxErrChk(DAQmxCfgSampClkTiming(taskHandle, "", 240.0, DAQmx_Val_Rising, DAQmx_Val_ContSamps, numSamples));
+		return 1;
 
 	Error:
 		if (DAQmxFailed(error))
@@ -97,18 +104,31 @@ extern "C"
 
 	int EXPORT_API eog_set_callback(void(*UnityCallback)(int))
 	{
-		//cb = UnityCallback;
-		if (UnityCallback) {
-			// printf_s("[unmanaged] got call back address (%d), calling it...\n", cb);
-			UnityCallback(5);
-			return 1;
-			//DAQmxErrChk(DAQmxRegisterEveryNSamplesEvent(taskHandle, DAQmx_Val_Acquired_Into_Buffer, 1000, 0, EveryNSamplesCallback, NULL));
+		int32       error = 0;
+		char        errBuff[2048] = { '\0' };
 
+		if (UnityCallback) 
+		{
+			UnityCallback(5);
+			DAQmxErrChk(DAQmxRegisterEveryNSamplesEvent(taskHandle, DAQmx_Val_Acquired_Into_Buffer, 1000, 0, EveryNSamplesCallback, NULL));
+			UnityCallback(6);
+			
+			DAQmxErrChk(DAQmxRegisterDoneEvent(taskHandle, 0, DoneCallback, NULL));
 			/*********************************************/
 			// DAQmx Start Code
 			/*********************************************/
-			//DAQmxErrChk(DAQmxStartTask(taskHandle));
+			DAQmxErrChk(DAQmxStartTask(taskHandle));
+			UnityCallback(7);
+			return 1;
 		}
+	Error:
+		if (DAQmxFailed(error))
+		{
+			DAQmxGetExtendedErrorInfo(errBuff, 2048);
+			Cleanup();
+			printf("DAQmx Error: %s\n", errBuff);
+		}
+
 		return 0;
 	}
 
@@ -121,13 +141,22 @@ extern "C"
 		/*********************************************/
 		// DAQmx Read Code
 		/*********************************************/
-		DAQmxErrChk(DAQmxReadAnalogF64(taskHandle, 1000, 10.0, DAQmx_Val_GroupByScanNumber, data, 1000, &read, NULL));
+
+		DAQmxErrChk(DAQmxReadAnalogF64(taskHandle, numSamples, 10.0, DAQmx_Val_GroupByScanNumber, data, 10, &read, NULL));
+		// DAQmxErrChk(DAQmxReadAnalogF64(taskHandle, 1000, 10.0, DAQmx_Val_GroupByScanNumber, data, 1000, &read, NULL));
 
 		// now call the callback we have set and send the data
 		if (read > 0) {
-
-			printf("Acquired %d samples. Total %d\r", (int)read, (int)(totalRead += read));
-			fflush(stdout);
+			UnityCallback(8);
+			//UnityCallback(read);
+			//UnityCallback(data);
+			return 1;
+			//printf("Acquired %d samples. Total %d\r", (int)read, (int)(totalRead += read));
+			//fflush(stdout);
+		}
+		else {
+			UnityCallback(9);
+			return 2;
 		}
 
 	Error:
@@ -140,12 +169,30 @@ extern "C"
 		return 0;
 	}
 
-	int EXPORT_API stop_task(void)
+	int32 CVICALLBACK DoneCallback(TaskHandle taskHandle, int32 status, void *callbackData)
+	{
+		int32   error = 0;
+		char    errBuff[2048] = { '\0' };
+
+		// Check to see if an error stopped the task.
+		DAQmxErrChk(status);
+
+	Error:
+		if (DAQmxFailed(error)) {
+			DAQmxGetExtendedErrorInfo(errBuff, 2048);
+			DAQmxClearTask(taskHandle);
+			printf("DAQmx Error: %s\n", errBuff);
+		}
+		return 0;
+	}
+
+	int EXPORT_API eog_stop_task(void)
 	{
 		int32       error = 0;
 		char        errBuff[2048] = { '\0' };
 
 		DAQmxErrChk(DAQmxStopTask(taskHandle));
+		return 1;
 
 	Error:
 
