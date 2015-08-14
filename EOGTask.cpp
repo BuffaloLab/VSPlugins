@@ -90,7 +90,8 @@ extern "C"
 		DAQmxErrChk(DAQmxCreateTask("", &taskHandle));
 		DAQmxErrChk(DAQmxCreateAIVoltageChan(taskHandle, "Dev1/ai3", "", DAQmx_Val_Cfg_Default, -5.0, 5.0, DAQmx_Val_Volts, NULL));
 		DAQmxErrChk(DAQmxCfgSampClkTiming(taskHandle, "", 240.0, DAQmx_Val_Rising, DAQmx_Val_ContSamps, numSamples));
-		return 1;
+		return DAQmx_Val_GroupByChannel;
+		//return 1;
 
 	Error:
 		if (DAQmxFailed(error))
@@ -99,9 +100,7 @@ extern "C"
 			Cleanup();
 			printf("DAQmx Error: %s\n", errBuff);
 		}
-		
-		return DAQmx_Val_GroupByScanNumber;
-		//return 0;
+		return 0;
 	}
 
 	int EXPORT_API eog_set_callback(UnityCallback uCallback)
@@ -202,6 +201,7 @@ extern "C"
 		char        errBuff[2048] = { '\0' };
 
 		DAQmxErrChk(DAQmxStopTask(taskHandle));
+		DAQmxClearTask(taskHandle);
 		return 1;
 
 	Error:
