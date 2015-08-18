@@ -49,7 +49,7 @@
 *********************************************************************/
 
 #include <stdio.h>
-#include <NIDAQmx.h>
+//#include <NIDAQmx.h>
 
 #if _MSC_VER // this is defined when compiling with Visual Studio
 #define EXPORT_API __declspec(dllexport) // Visual Studio needs annotating exported functions with this
@@ -64,7 +64,8 @@
 
 extern "C"
 {
-
+	#include "NIDAQmx.h"
+	//int32 __declspec(dllexport) DAQmxReadAnalogF64(TaskHandle taskHandle, int32 numSampsPerChan, float64 timeout, bool32 fillMode, float64 readArray[], uInt32 arraySizeInSamps, int32 *sampsPerChanRead, bool32 *reserved);
 	//typedef void(*UnityCallback)(float64);
 	//UnityCallback Callback;
 	typedef int32(*UnityCallback)(TaskHandle taskHandle, int32 everyNsamplesEventType, uInt32 nSamples, void *callbackData);
@@ -107,8 +108,8 @@ extern "C"
 	{
 		int32       error = 0;
 		char        errBuff[2048] = { '\0' };
-		int32       read;
-		float64		data[1];
+		//int32       read;
+		//float64		data[1];
 
 		if (uCallback) 
 		{
@@ -136,6 +137,40 @@ extern "C"
 			printf("DAQmx Error: %s\n", errBuff);
 		}
 
+		return 0;
+	}
+
+	float64 EXPORT_API eog_return_data()
+	{
+		int32       error = 0;
+		int32       read;
+		char        errBuff[2048] = { '\0' };
+		//int32       read;
+		//float64		data[1];
+
+		/*********************************************/
+		// DAQmx Read Code
+		/*********************************************/
+
+		//uCallback(9.0f);
+		DAQmxErrChk(DAQmxReadAnalogF64(taskHandle, numSamples, 10.0, DAQmx_Val_GroupByScanNumber, data, 1, &read, NULL));
+		// DAQmxErrChk(DAQmxReadAnalogF64(taskHandle, 1000, 10.0, DAQmx_Val_GroupByScanNumber, data, 1000, &read, NULL));
+
+		// now call the callback we have set and send the data
+		if (read > 0) {
+			return data[0];
+		}
+		else {
+			return 0;
+		}
+
+	Error:
+		if (DAQmxFailed(error))
+		{
+			DAQmxGetExtendedErrorInfo(errBuff, 2048);
+			Cleanup();
+			printf("DAQmx Error: %s\n", errBuff);
+		}
 		return 0;
 	}
 

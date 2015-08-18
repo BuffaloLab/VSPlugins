@@ -22,6 +22,9 @@
     <ClCompile Include="Reward.cpp" />
     <ClCompile Include="EOGTask.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="NIDAQmx.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectName>NidaqPlugin</ProjectName>
     <ProjectGuid>{210BCAB2-38E8-4F21-859A-2F8C4C5F2C3D}</ProjectGuid>
