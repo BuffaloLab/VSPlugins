@@ -186,7 +186,7 @@
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>
       </DataExecutionPrevention>
-      <ImportLibrary>$(OutDir)ASimplePlugin.lib</ImportLibrary>
+      <ImportLibrary>$(OutDir)NidaqPlugin.lib</ImportLibrary>
       <AdditionalLibraryDirectories>C:\Program Files %28x86%29\National Instruments\Shared\ExternalCompilerSupport\C\lib64\msvc;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>nidaqmx.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>

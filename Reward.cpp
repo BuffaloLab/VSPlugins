@@ -52,7 +52,7 @@
 extern "C"
 {
 	
-	int EXPORT_API reward(int on)
+	int EXPORT_API Reward(int on)
 	{
 		int         error = 0;
 		TaskHandle	taskHandle = 0;
@@ -99,19 +99,4 @@ extern "C"
 		getchar();
 		return -1;
 	}
-
-// The functions we will call from Unity.
-//
-const EXPORT_API char*  PrintHello(){
-	return "Hello";
-}
-
-int EXPORT_API AddTwoIntegers(int a, int b) {
-	return a + b;
-}
-
-float EXPORT_API AddTwoFloats(float a, float b) {
-	return a + b;
-}
-
 } // end of export C block

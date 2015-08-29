@@ -76,11 +76,11 @@ extern "C"
 	void Cleanup(void);
 	//void set_eog_callback(void(*UnityCallback));
 	static TaskHandle	taskHandle = 0;
-	static float64		data[1];
+	static float64		data[2];
 	static int32		totalRead = 0;
 	static int32		numSamples = 1;
 	
-	int EXPORT_API eog_start_task(void)
+	TaskHandle EXPORT_API EOGStartTask(const char *channel)
 	{
 		int32       error = 0;
 		char        errBuff[2048] = { '\0' };
@@ -89,9 +89,10 @@ extern "C"
 		// DAQmx Configure Code
 		/*********************************************/
 		DAQmxErrChk(DAQmxCreateTask("", &taskHandle));
-		DAQmxErrChk(DAQmxCreateAIVoltageChan(taskHandle, "Dev1/ai3", "", DAQmx_Val_Cfg_Default, -5.0, 5.0, DAQmx_Val_Volts, NULL));
+		DAQmxErrChk(DAQmxCreateAIVoltageChan(taskHandle, channel, "", DAQmx_Val_Cfg_Default, -5.0, 5.0, DAQmx_Val_Volts, NULL));
+		// DAQmxErrChk(DAQmxCreateAIVoltageChan(taskHandle, "Dev1/ai3", "", DAQmx_Val_Cfg_Default, -5.0, 5.0, DAQmx_Val_Volts, NULL));
 		DAQmxErrChk(DAQmxCfgSampClkTiming(taskHandle, "", 240.0, DAQmx_Val_Rising, DAQmx_Val_ContSamps, numSamples));
-		return DAQmx_Val_GroupByChannel;
+		return taskHandle;
 		//return 1;
 
 	Error:
@@ -104,7 +105,7 @@ extern "C"
 		return 0;
 	}
 
-	int EXPORT_API eog_set_callback(UnityCallback uCallback)
+	int EXPORT_API EOGSetCallback(UnityCallback uCallback, TaskHandle taskHandle)
 	{
 		int32       error = 0;
 		char        errBuff[2048] = { '\0' };
@@ -140,8 +141,9 @@ extern "C"
 		return 0;
 	}
 
-	float64 EXPORT_API eog_return_data()
+	float64 EXPORT_API *EOGReturnData(TaskHandle taskHandle)
 	{
+		float64		*ret = new float64[2];
 		int32       error = 0;
 		int32       read;
 		char        errBuff[2048] = { '\0' };
@@ -153,53 +155,14 @@ extern "C"
 		/*********************************************/
 
 		//uCallback(9.0f);
-		DAQmxErrChk(DAQmxReadAnalogF64(taskHandle, numSamples, 10.0, DAQmx_Val_GroupByScanNumber, data, 1, &read, NULL));
+		DAQmxErrChk(DAQmxReadAnalogF64(taskHandle, numSamples, 10.0, DAQmx_Val_GroupByChannel, data, 1, &read, NULL));
 		// DAQmxErrChk(DAQmxReadAnalogF64(taskHandle, 1000, 10.0, DAQmx_Val_GroupByScanNumber, data, 1000, &read, NULL));
-
 		// now call the callback we have set and send the data
 		if (read > 0) {
-			return data[0];
+			return ret;
 		}
 		else {
 			return 0;
-		}
-
-	Error:
-		if (DAQmxFailed(error))
-		{
-			DAQmxGetExtendedErrorInfo(errBuff, 2048);
-			Cleanup();
-			printf("DAQmx Error: %s\n", errBuff);
-		}
-		return 0;
-	}
-
-	int32 CVICALLBACK EveryNSamplesCallback(TaskHandle taskHandle, int32 everyNsamplesEventType, uInt32 nSamples, void *callbackData)
-	{
-		int32       error = 0;
-		int32       read;
-		char        errBuff[2048] = { '\0' };
-
-		/*********************************************/
-		// DAQmx Read Code
-		/*********************************************/
-
-		//uCallback(9.0f);
-		DAQmxErrChk(DAQmxReadAnalogF64(taskHandle, numSamples, 10.0, DAQmx_Val_GroupByScanNumber, data, 1, &read, NULL));
-		// DAQmxErrChk(DAQmxReadAnalogF64(taskHandle, 1000, 10.0, DAQmx_Val_GroupByScanNumber, data, 1000, &read, NULL));
-
-		// now call the callback we have set and send the data
-		if (read > 0) {
-			//UnityCallback(8.0f);
-			//UnityCallback(read);
-			//UnityCallback(data);
-			return 1;
-			//printf("Acquired %d samples. Total %d\r", (int)read, (int)(totalRead += read));
-			//fflush(stdout);
-		}
-		else {
-			//UnityCallback(9.0f);
-			return 2;
 		}
 
 	Error:
@@ -230,14 +193,22 @@ extern "C"
 		return 0;
 	}
 
-	int EXPORT_API eog_stop_task(void)
+	int EXPORT_API EOGStopTask(TaskHandle taskHandle)
 	{
 		int32       error = 0;
-		char        errBuff[2048] = { '\0' };
+		char		errBuff[2048] = { '\0' };
 
-		DAQmxErrChk(DAQmxStopTask(taskHandle));
-		DAQmxClearTask(taskHandle);
-		return 1;
+		if (taskHandle != 0)
+		{
+			DAQmxErrChk(DAQmxStopTask(taskHandle));
+			DAQmxClearTask(taskHandle);
+			return 1;
+		}
+		else
+		{
+			return 2;
+		}
+		
 
 	Error:
 
