@@ -140,30 +140,35 @@ extern "C"
 
 		return 0;
 	}
-
+	
 	float64 EXPORT_API *EOGReturnData(TaskHandle taskHandle)
+	//int32 EXPORT_API *EOGReturnData(TaskHandle taskHandle)
 	{
 		float64		*ret = new float64[2];
+		//int32		*ret = new int32[2];
 		int32       error = 0;
 		int32       read;
 		char        errBuff[2048] = { '\0' };
-		//int32       read;
-		//float64		data[1];
 
 		/*********************************************/
 		// DAQmx Read Code
 		/*********************************************/
 
-		//uCallback(9.0f);
-		DAQmxErrChk(DAQmxReadAnalogF64(taskHandle, numSamples, 10.0, DAQmx_Val_GroupByChannel, data, 1, &read, NULL));
+		DAQmxErrChk(DAQmxReadAnalogF64(taskHandle, numSamples, 10.0, DAQmx_Val_GroupByChannel, data, numSamples, &read, NULL));
 		// DAQmxErrChk(DAQmxReadAnalogF64(taskHandle, 1000, 10.0, DAQmx_Val_GroupByScanNumber, data, 1000, &read, NULL));
 		// now call the callback we have set and send the data
-		if (read > 0) {
-			return ret;
+		
+		if (read == 2) {		
+			for (int n = 0; n < 2; n++)
+			{
+				ret[n] = data[n];
+			}	
 		}
-		else {
-			return 0;
-		}
+		
+		//ret[0] = 4.02;
+		//ret[1] = -2.34;
+
+		return ret;
 
 	Error:
 		if (DAQmxFailed(error))
