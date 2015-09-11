@@ -80,7 +80,7 @@ extern "C"
 	static int32		totalRead = 0;
 	static int32		numSamples = 1;
 	
-	TaskHandle EXPORT_API EOGStartTask(const char *channel)
+	TaskHandle EXPORT_API EOGStartTask()
 	{
 		int32       error = 0;
 		char        errBuff[2048] = { '\0' };
@@ -89,9 +89,6 @@ extern "C"
 		// DAQmx Configure Code
 		/*********************************************/
 		DAQmxErrChk(DAQmxCreateTask("", &taskHandle));
-		DAQmxErrChk(DAQmxCreateAIVoltageChan(taskHandle, channel, "", DAQmx_Val_Cfg_Default, -5.0, 5.0, DAQmx_Val_Volts, NULL));
-		// DAQmxErrChk(DAQmxCreateAIVoltageChan(taskHandle, "Dev1/ai3", "", DAQmx_Val_Cfg_Default, -5.0, 5.0, DAQmx_Val_Volts, NULL));
-		DAQmxErrChk(DAQmxCfgSampClkTiming(taskHandle, "", 240.0, DAQmx_Val_Rising, DAQmx_Val_ContSamps, numSamples));
 		return taskHandle;
 		//return 1;
 
@@ -105,7 +102,34 @@ extern "C"
 		return 0;
 	}
 
-	int EXPORT_API EOGSetCallback(UnityCallback uCallback, TaskHandle taskHandle)
+	// when I tried to set the channels from c#, first channel set fine, but second one gets error. no freaking idea, so hardcoded it.
+	//int EXPORT_API EOGSetChannel(const char *channel)
+	TaskHandle EXPORT_API EOGSetChannel()
+	{
+		int32       error = 0;
+		char        errBuff[2048] = { '\0' };
+
+		/*********************************************/
+		// DAQmx Configure Code
+		/*********************************************/
+		DAQmxErrChk(DAQmxCreateAIVoltageChan(taskHandle, "Dev1/ai3", "", DAQmx_Val_Cfg_Default, -5.0, 5.0, DAQmx_Val_Volts, NULL));
+		DAQmxErrChk(DAQmxCreateAIVoltageChan(taskHandle, "Dev1/ai4", "", DAQmx_Val_Cfg_Default, -5.0, 5.0, DAQmx_Val_Volts, NULL));
+		// DAQmxErrChk(DAQmxCreateAIVoltageChan(taskHandle, channel, "", DAQmx_Val_Cfg_Default, -5.0, 5.0, DAQmx_Val_Volts, NULL));
+		
+		return taskHandle;
+		//return 1;
+
+	Error:
+		if (DAQmxFailed(error))
+		{
+			DAQmxGetExtendedErrorInfo(errBuff, 2048);
+			Cleanup();
+			printf("DAQmx Error: %s\n", errBuff);
+		}
+		return 0;
+	}
+
+	TaskHandle EXPORT_API EOGSetCallback(UnityCallback uCallback)
 	{
 		int32       error = 0;
 		char        errBuff[2048] = { '\0' };
@@ -114,21 +138,16 @@ extern "C"
 
 		if (uCallback) 
 		{
-			//uCallback(5.0f);
+			DAQmxErrChk(DAQmxCfgSampClkTiming(taskHandle, "", 240.0, DAQmx_Val_Rising, DAQmx_Val_ContSamps, numSamples));
 			DAQmxErrChk(DAQmxRegisterEveryNSamplesEvent(taskHandle, DAQmx_Val_Acquired_Into_Buffer, 1, 0, uCallback, NULL));
 			// DAQmxErrChk(DAQmxRegisterEveryNSamplesEvent(taskHandle, DAQmx_Val_Acquired_Into_Buffer, 1000, 0, EveryNSamplesCallback, NULL));
-			//uCallback(6.0f);
-			
 			DAQmxErrChk(DAQmxRegisterDoneEvent(taskHandle, 0, DoneCallback, NULL));
 			/*********************************************/
 			// DAQmx Start Code
 			/*********************************************/
 			DAQmxErrChk(DAQmxStartTask(taskHandle));
 
-			//DAQmxErrChk(DAQmxReadAnalogF64(taskHandle, 1, 10.0, DAQmx_Val_GroupByChannel, data, 1, &read, NULL));
-			//uCallback(7.0f);
-			//uCallback(data[0]);
-			return 1;
+			return taskHandle;
 		}
 	Error:
 		if (DAQmxFailed(error))
@@ -154,19 +173,19 @@ extern "C"
 		// DAQmx Read Code
 		/*********************************************/
 
-		DAQmxErrChk(DAQmxReadAnalogF64(taskHandle, numSamples, 10.0, DAQmx_Val_GroupByChannel, data, numSamples, &read, NULL));
+		DAQmxErrChk(DAQmxReadAnalogF64(taskHandle, numSamples, 10.0, DAQmx_Val_GroupByChannel, data, 2, &read, NULL));
 		// DAQmxErrChk(DAQmxReadAnalogF64(taskHandle, 1000, 10.0, DAQmx_Val_GroupByScanNumber, data, 1000, &read, NULL));
 		// now call the callback we have set and send the data
 		
-		if (read == 2) {		
+		//ret[0] = 4.02;
+		//ret[1] = -2.34;
+
+		if (read > 0) {		
 			for (int n = 0; n < 2; n++)
 			{
 				ret[n] = data[n];
 			}	
 		}
-		
-		//ret[0] = 4.02;
-		//ret[1] = -2.34;
 
 		return ret;
 
